@@ -1,16 +1,14 @@
-import { injected } from '@components/connector';
+import Web3 from 'web3';
 import { useWeb3React } from '@web3-react/core';
 
-import Web3 from 'web3';
-import useSWR from 'swr';
-const URL =
-  'https://api.coingecko.com/api/v3/coins/binance-usd?localization=false&tickers=false&community_data=false&developer_data=false&sparkline=false';
+import { tokens } from '@public/tokens';
+import { injected } from '@components/connector';
+
+import abi from '../../public/abi.json';
 
 export default function index({ address }) {
   const { active, account, library, connector, chainId, activate, deactivate } = useWeb3React();
-
-  const { busd } = useBusdPrice(15);
-  console.log(busd);
+  const web3 = new Web3(library);
 
   async function connect() {
     try {
@@ -26,9 +24,18 @@ export default function index({ address }) {
     }
   }
 
+  async function getBalance() {
+    let accountWeb3 = await web3.eth.getAccounts().then((accounts) => accounts[0]);
+
+    for (let tokenAddress of tokens) {
+      const contract = new web3.eth.Contract(abi, tokenAddress);
+      const tokenBalance = await contract.methods.balanceOf(accountWeb3).call();
+      console.log(`${tokenAddress} balance: ${tokenBalance}`);
+    }
+  }
+
   async function sendTransications() {
     try {
-      const web3 = new Web3(library);
       web3.eth.getChainId().then((chainId) => {
         if (chainId === 97) {
           web3.eth
@@ -62,49 +69,39 @@ export default function index({ address }) {
         <span>
           Connected with <b>{account}</b>
           <br />
-          <div>Chain ID: {chainId}</div>
+          <span>
+            Chain ID: <b>{chainId}</b>
+          </span>
         </span>
       ) : (
         <span>Not connected</span>
       )}
 
       {active && (
-        <div>
+        <div className="flex row-span-3">
           <br />
-          <button onClick={disconnect}>Disconnect </button>
+          <button
+            className="py-2 mr-2 mt-20 mb-4 text-lg font-bold text-white rounded-lg w-56 bg-blue-600 hover:bg-blue-800"
+            onClick={disconnect}
+          >
+            Disconnect
+          </button>
           <br />
-          <button onClick={sendTransications}>Send Token</button>
+          <button
+            className="py-2 mr-2 mt-20 mb-4 text-lg font-bold text-white rounded-lg w-56 bg-blue-600 hover:bg-blue-800"
+            onClick={sendTransications}
+          >
+            Send Token
+          </button>
+          <br />
+          <button
+            className="py-2 mr-2 mt-20 mb-4 text-lg font-bold text-white rounded-lg w-56 bg-blue-600 hover:bg-blue-800"
+            onClick={getBalance}
+          >
+            Get Balance
+          </button>
         </div>
       )}
     </div>
   );
 }
-
-export async function getStaticProps() {
-  return {
-    props: {
-      address: process.env.ADDRESS,
-    },
-  };
-}
-
-const fetcher = async (url) => {
-  const res = await fetch(url);
-  const json = await res.json();
-
-  return json.market_data.current_price.usd ?? null;
-};
-
-const useBusdPrice = (PRICE) => {
-  const { data, ...rest } = useSWR(URL, fetcher, { refreshInterval: 1000 });
-
-  const prices = (data && PRICE / Number(data).toFixed(6)) ?? null;
-
-  return {
-    busd: {
-      data,
-      prices,
-      ...rest,
-    },
-  };
-};
