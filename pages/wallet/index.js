@@ -1,8 +1,8 @@
+import { injected } from '@components/connector';
 import { useWeb3React } from '@web3-react/core';
-import { injected } from '../../components/connector';
 import Web3 from 'web3';
 
-export default function index() {
+export default function index({ address }) {
   const { active, account, library, connector, chainId, activate, deactivate } = useWeb3React();
 
   async function connect() {
@@ -22,9 +22,20 @@ export default function index() {
   async function sendTransications() {
     try {
       const web3 = new Web3(library);
-
       web3.eth.getChainId().then((chainId) => {
-        console.log(chainId);
+        if (chainId === 97) {
+          web3.eth
+            .sendTransaction({
+              from: account,
+              to: address,
+              value: web3.utils.toWei('10', 'wei'),
+            })
+            .catch((e) => {
+              if (e.code === 4001) {
+                console.log('Kullanıcı tarafından reddedildi');
+              }
+            });
+        }
       });
     } catch (e) {}
   }
@@ -60,4 +71,13 @@ export default function index() {
       )}
     </div>
   );
+}
+
+export async function getStaticProps() {
+  console.log('[NODEJS ONLY] ENV_VARİABLE', process.env.ADDRESS);
+  return {
+    props: {
+      address: process.env.ADDRESS,
+    },
+  };
 }
