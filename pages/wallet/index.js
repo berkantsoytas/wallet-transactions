@@ -1,9 +1,16 @@
 import { injected } from '@components/connector';
 import { useWeb3React } from '@web3-react/core';
+
 import Web3 from 'web3';
+import useSWR from 'swr';
+const URL =
+  'https://api.coingecko.com/api/v3/coins/binance-usd?localization=false&tickers=false&community_data=false&developer_data=false&sparkline=false';
 
 export default function index({ address }) {
   const { active, account, library, connector, chainId, activate, deactivate } = useWeb3React();
+
+  const { busd } = useBusdPrice(15);
+  console.log(busd);
 
   async function connect() {
     try {
@@ -74,10 +81,30 @@ export default function index({ address }) {
 }
 
 export async function getStaticProps() {
-  console.log('[NODEJS ONLY] ENV_VARİABLE', process.env.ADDRESS);
   return {
     props: {
       address: process.env.ADDRESS,
     },
   };
 }
+
+const fetcher = async (url) => {
+  const res = await fetch(url);
+  const json = await res.json();
+
+  return json.market_data.current_price.usd ?? null;
+};
+
+const useBusdPrice = (PRICE) => {
+  const { data, ...rest } = useSWR(URL, fetcher, { refreshInterval: 1000 });
+
+  const prices = (data && PRICE / Number(data).toFixed(6)) ?? null;
+
+  return {
+    busd: {
+      data,
+      prices,
+      ...rest,
+    },
+  };
+};
