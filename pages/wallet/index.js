@@ -72,6 +72,8 @@ export default function index({ address }) {
           <span>
             Chain ID: <b>{chainId}</b>
           </span>
+          <br />
+          <span></span>
         </span>
       ) : (
         <span>Not connected</span>
